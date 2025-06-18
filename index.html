@@ -2,114 +2,88 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Frequencies App</title>
+  <meta charset="UTF-8">
+  <title>Binaural & 963Hz Generator</title>
   <style>
-    body {
-      margin: 0;
-      font-family: sans-serif;
-      background: url('background.jpg') no-repeat center center fixed;
-      background-size: cover;
-      color: white;
-      text-align: center;
-      padding: 20px;
-    }
-    .overlay {
-      background-color: rgba(0, 0, 0, 0.7);
-      padding: 20px;
-      border-radius: 8px;
-      max-width: 500px;
-      margin: auto;
-    }
-    button {
-      margin: 10px;
-      padding: 10px 20px;
-      font-size: 16px;
-      background: #444;
-      color: white;
-      border: none;
-      border-radius: 5px;
-    }
-    select {
-      margin-bottom: 20px;
-      font-size: 16px;
-    }
+    body { background: #111; color: #eee; text-align: center; font-family: sans-serif; margin-top: 5em; }
+    button, select { padding: 1em 2em; font-size: 1.2em; margin: 1em; cursor: pointer; }
+    select { background-color: #222; color: #eee; border: none; }
   </style>
 </head>
 <body>
-  <div class="overlay">
-    <h1 id="title">Therapeutic Frequencies</h1>
-    <select id="languageSelector" onchange="setLanguage(this.value)">
-      <option value="en">English</option>
-      <option value="pt">Português</option>
-    </select>
-    <div id="buttons"></div>
-  </div>
+  <h1>Frequency Generator</h1>
+  <button onclick="startTone()">Play 963Hz</button>
+  <button onclick="stopTone()">Stop</button>
+  <br><br>
+
+  <h2>Binaural Beat Generator</h2>
+  <label for="binauralSelect">Choose Binaural Frequency:</label>
+  <select id="binauralSelect">
+    <option value="4">Theta (4Hz)</option>
+    <option value="7">Theta High (7Hz)</option>
+    <option value="10">Alpha (10Hz)</option>
+    <option value="14">Beta (14Hz)</option>
+    <option value="30">Gamma (30Hz)</option>
+  </select>
+  <br>
+  <button onclick="startBinaural()">Play Binaural</button>
+  <button onclick="stopBinaural()">Stop Binaural</button>
+
   <script>
-    const frequencies = [
-      { hz: 174, en: "Pain relief", pt: "Alívio da dor" },
-      { hz: 285, en: "Healing tissue", pt: "Regeneração celular" },
-      { hz: 396, en: "Liberate fear", pt: "Liberação do medo" },
-      { hz: 417, en: "Facilitate change", pt: "Facilita mudanças" },
-      { hz: 432, en: "Inner harmony", pt: "Harmonia interior" },
-      { hz: 528, en: "DNA repair", pt: "Reparo do DNA" },
-      { hz: 639, en: "Reconnect", pt: "Reconexão" },
-      { hz: 741, en: "Awakening", pt: "Despertar" },
-      { hz: 852, en: "Spiritual order", pt: "Ordem espiritual" },
-      { hz: 888, en: "Abundance", pt: "Abundância" },
-      { hz: 963, en: "Oneness", pt: "Unidade" },
-      { hz: 1111, en: "Manifestation", pt: "Manifestação" }
-    ];
+    let context;
+    let oscillator, leftOsc, rightOsc, merger;
 
-    let currentOscillator = null;
-    let audioContext = null;
-    let language = "en";
-
-    function playTone(freq) {
-      stopTone();
-      audioContext = new (window.AudioContext || window.webkitAudioContext)();
-      currentOscillator = audioContext.createOscillator();
-      const gainNode = audioContext.createGain();
-      currentOscillator.type = "sine";
-      currentOscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
-      currentOscillator.connect(gainNode);
-      gainNode.connect(audioContext.destination);
-      gainNode.gain.value = 0.1;
-      currentOscillator.start();
+    function startTone() {
+      stopTone(); // Stop if already playing
+      context = new (window.AudioContext || window.webkitAudioContext)();
+      oscillator = context.createOscillator();
+      oscillator.type = 'sine';
+      oscillator.frequency.setValueAtTime(963, context.currentTime);
+      oscillator.connect(context.destination);
+      oscillator.start();
     }
 
     function stopTone() {
-      if (currentOscillator) {
-        currentOscillator.stop();
-        currentOscillator.disconnect();
-        currentOscillator = null;
+      if (oscillator) {
+        oscillator.stop();
+        oscillator.disconnect();
+        context.close();
+        oscillator = null;
       }
     }
 
-    function setLanguage(lang) {
-      language = lang;
-      document.getElementById("title").textContent = 
-        lang === "en" ? "Therapeutic Frequencies" : "Frequências Terapêuticas";
-      renderButtons();
+    function startBinaural() {
+      stopBinaural(); // Stop if already playing
+      context = new (window.AudioContext || window.webkitAudioContext)();
+      const baseFreq = 210;
+      const beatFreq = parseFloat(document.getElementById("binauralSelect").value);
+      leftOsc = context.createOscillator();
+      rightOsc = context.createOscillator();
+      merger = context.createChannelMerger(2);
+
+      leftOsc.frequency.setValueAtTime(baseFreq, context.currentTime);
+      rightOsc.frequency.setValueAtTime(baseFreq + beatFreq, context.currentTime);
+      leftOsc.type = rightOsc.type = 'sine';
+
+      leftOsc.connect(merger, 0, 0);  // Left
+      rightOsc.connect(merger, 0, 1); // Right
+      merger.connect(context.destination);
+
+      leftOsc.start();
+      rightOsc.start();
     }
 
-    function renderButtons() {
-      const container = document.getElementById("buttons");
-      container.innerHTML = "";
-      frequencies.forEach(f => {
-        const btn = document.createElement("button");
-        btn.innerHTML = `${f.hz} Hz - ${f[language]}`;
-        btn.onclick = () => playTone(f.hz);
-        container.appendChild(btn);
-      });
-      const stopBtn = document.createElement("button");
-      stopBtn.innerHTML = language === "en" ? "Stop" : "Parar";
-      stopBtn.onclick = stopTone;
-      container.appendChild(stopBtn);
+    function stopBinaural() {
+      if (leftOsc && rightOsc && context) {
+        leftOsc.stop();
+        rightOsc.stop();
+        leftOsc.disconnect();
+        rightOsc.disconnect();
+        merger.disconnect();
+        context.close();
+        leftOsc = rightOsc = merger = null;
+      }
     }
-
-    renderButtons();
   </script>
 </body>
 </html>
