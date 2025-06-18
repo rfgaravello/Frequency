@@ -1,0 +1,115 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Frequencies App</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: sans-serif;
+      background: url('background.jpg') no-repeat center center fixed;
+      background-size: cover;
+      color: white;
+      text-align: center;
+      padding: 20px;
+    }
+    .overlay {
+      background-color: rgba(0, 0, 0, 0.7);
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 500px;
+      margin: auto;
+    }
+    button {
+      margin: 10px;
+      padding: 10px 20px;
+      font-size: 16px;
+      background: #444;
+      color: white;
+      border: none;
+      border-radius: 5px;
+    }
+    select {
+      margin-bottom: 20px;
+      font-size: 16px;
+    }
+  </style>
+</head>
+<body>
+  <div class="overlay">
+    <h1 id="title">Therapeutic Frequencies</h1>
+    <select id="languageSelector" onchange="setLanguage(this.value)">
+      <option value="en">English</option>
+      <option value="pt">Português</option>
+    </select>
+    <div id="buttons"></div>
+  </div>
+  <script>
+    const frequencies = [
+      { hz: 174, en: "Pain relief", pt: "Alívio da dor" },
+      { hz: 285, en: "Healing tissue", pt: "Regeneração celular" },
+      { hz: 396, en: "Liberate fear", pt: "Liberação do medo" },
+      { hz: 417, en: "Facilitate change", pt: "Facilita mudanças" },
+      { hz: 432, en: "Inner harmony", pt: "Harmonia interior" },
+      { hz: 528, en: "DNA repair", pt: "Reparo do DNA" },
+      { hz: 639, en: "Reconnect", pt: "Reconexão" },
+      { hz: 741, en: "Awakening", pt: "Despertar" },
+      { hz: 852, en: "Spiritual order", pt: "Ordem espiritual" },
+      { hz: 888, en: "Abundance", pt: "Abundância" },
+      { hz: 963, en: "Oneness", pt: "Unidade" },
+      { hz: 1111, en: "Manifestation", pt: "Manifestação" }
+    ];
+
+    let currentOscillator = null;
+    let audioContext = null;
+    let language = "en";
+
+    function playTone(freq) {
+      stopTone();
+      audioContext = new (window.AudioContext || window.webkitAudioContext)();
+      currentOscillator = audioContext.createOscillator();
+      const gainNode = audioContext.createGain();
+      currentOscillator.type = "sine";
+      currentOscillator.frequency.setValueAtTime(freq, audioContext.currentTime);
+      currentOscillator.connect(gainNode);
+      gainNode.connect(audioContext.destination);
+      gainNode.gain.value = 0.1;
+      currentOscillator.start();
+    }
+
+    function stopTone() {
+      if (currentOscillator) {
+        currentOscillator.stop();
+        currentOscillator.disconnect();
+        currentOscillator = null;
+      }
+    }
+
+    function setLanguage(lang) {
+      language = lang;
+      document.getElementById("title").textContent = 
+        lang === "en" ? "Therapeutic Frequencies" : "Frequências Terapêuticas";
+      renderButtons();
+    }
+
+    function renderButtons() {
+      const container = document.getElementById("buttons");
+      container.innerHTML = "";
+      frequencies.forEach(f => {
+        const btn = document.createElement("button");
+        btn.innerHTML = `${f.hz} Hz - ${f[language]}`;
+        btn.onclick = () => playTone(f.hz);
+        container.appendChild(btn);
+      });
+      const stopBtn = document.createElement("button");
+      stopBtn.innerHTML = language === "en" ? "Stop" : "Parar";
+      stopBtn.onclick = stopTone;
+      container.appendChild(stopBtn);
+    }
+
+    renderButtons();
+  </script>
+</body>
+</html>
